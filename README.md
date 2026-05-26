@@ -10,6 +10,9 @@ Alumno de Ingeniería Civil Informática
 Facultad de Ingeniería, Universidad Andrés Bello  
 Curso: Aprendizaje de Máquinas — ACIF104 | Mayo 2026  
 
+**Despliegue en Render:**  
+🚀 [https://maternal-risk-predictor-kdhs.onrender.com/](https://maternal-risk-predictor-kdhs.onrender.com/)
+
 ---
 
 ## Descripción del Proyecto
