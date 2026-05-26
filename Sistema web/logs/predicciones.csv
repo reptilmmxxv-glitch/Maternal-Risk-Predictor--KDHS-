@@ -1,0 +1,15 @@
+timestamp,probabilidad,clasificacion,age,parity,education,anc_visits,place_delivery,skilled_attendant,c_section,postnatal48h,marital_status,age_first_birth,birth_interval,wealth_quintile,household_size,distance_facility,urbanization,health_facility_density,poverty_rate,sba_coverage,county_edu_index,hiv_prev,county
+2026-05-04T21:27:58.666266,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-04T22:02:37.924117,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-04T22:04:53.436734,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-04T22:06:28.220231,0.10709971353994513,0,28,0,3,6,Public,Skilled,0,1,Married,22,24,5,5,5,Urban,8.56,33.21,74.97,72.68,6.18,Kilifi
+2026-05-05T12:45:27.257869,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-05T12:46:38.377713,0.24340730730797644,0,28,0,3,4,Public,Skilled,0,1,Married,22,0,5,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-05T12:49:13.841670,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-05T14:23:27.669006,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-25T20:04:45.906427,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-25T20:25:50.788605,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-25T20:26:11.389840,0.9001027398590921,1,28,2,1,1,Home,Skilled,0,1,Married,22,31,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-25T21:06:43.821800,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-25T21:09:59.364673,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi
+2026-05-25T21:14:32.349386,0.8921872747710919,1,28,2,1,4,Public,Skilled,0,1,Married,22,24,3,5,5,Rural,8.72,34.62,75.01,72.77,5.74,Nairobi

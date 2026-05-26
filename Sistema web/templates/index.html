@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prediccion de Riesgo de Mortalidad Materna</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f5f7fa; font-family: Calibri, sans-serif; }
+    .header-bar { background-color: #1f3864; color: white; padding: 20px 0; margin-bottom: 30px; }
+    .header-bar h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
+    .header-bar p { font-size: 0.85rem; margin: 4px 0 0; color: #c8d4e8; }
+    .card { border: none; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .card-header { background-color: #2e75b6; color: white; font-weight: 600; border-radius: 8px 8px 0 0 !important; padding: 12px 20px; font-size: 0.95rem; }
+    .form-label { font-size: 0.85rem; font-weight: 600; color: #333; margin-bottom: 3px; }
+    .form-control, .form-select { font-size: 0.9rem; border-radius: 6px; }
+    .campo-auto { background-color: #f0f4fb !important; color: #2e75b6; font-weight: 600; border: 1px solid #c8d8f0 !important; }
+    .badge-auto { font-size: 0.7rem; background-color: #2e75b6; color: white; border-radius: 4px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+    .btn-predecir { background-color: #1f3864; color: white; font-weight: 600; padding: 10px 40px; border-radius: 6px; border: none; font-size: 1rem; }
+    .btn-predecir:hover { background-color: #2e75b6; color: white; }
+    #resultado { display: none; }
+    .riesgo-alto     { background-color: #fdecea; border-left: 5px solid #c0392b; }
+    .riesgo-moderado { background-color: #fff8e1; border-left: 5px solid #e67e22; }
+    .riesgo-bajo     { background-color: #eafaf1; border-left: 5px solid #27ae60; }
+    .resultado-box { border-radius: 8px; padding: 20px 24px; }
+    .prob-numero { font-size: 2.8rem; font-weight: 700; line-height: 1; }
+    .shap-bar-container { background: #e9ecef; border-radius: 4px; height: 12px; width: 100%; }
+    .shap-bar-fill { height: 12px; border-radius: 4px; }
+    .shap-aumenta { background-color: #c0392b; }
+    .shap-reduce  { background-color: #27ae60; }
+    .footer-note { font-size: 0.75rem; color: #888; margin-top: 12px; font-style: italic; }
+    .seccion-titulo { font-size: 0.8rem; text-transform: uppercase; font-weight: 700; color: #2e75b6; letter-spacing: 0.05em; margin-bottom: 10px; border-bottom: 1px solid #dce3ef; padding-bottom: 5px; }
+  </style>
+</head>
+<body>
+
+<div class="header-bar">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1>Sistema de Predicción de Riesgo de Mortalidad Materna</h1>
+        <p>Herramienta de apoyo clínico basada en aprendizaje automático — ACIF104 / UNAB</p>
+      </div>
+      <a href="/logout" class="btn btn-outline-light btn-sm">Cerrar Sesión</a>
+    </div>
+  </div>
+</div>
+
+<div class="container pb-5">
+  <div class="row g-4">
+
+    <!-- FORMULARIO -->
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header">Datos de la paciente</div>
+        <div class="card-body p-4">
+          <form id="formulario">
+
+            <!-- DATOS DEMOGRAFICOS -->
+            <p class="seccion-titulo">Datos demograficos</p>
+            <div class="row g-3 mb-3">
+              <div class="col-sm-6">
+                <label class="form-label">Edad (anos)</label>
+                <input type="number" class="form-control" id="age" min="15" max="49" value="28" required>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Estado civil</label>
+                <select class="form-select" id="marital_status">
+                  <option value="Married">Casada / Union estable</option>
+                  <option value="Single">Soltera</option>
+                  <option value="Widowed">Viuda</option>
+                  <option value="Divorced">Divorciada</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Nivel educativo</label>
+                <select class="form-select" id="education">
+                  <option value="Primary">Primaria</option>
+                  <option value="Secondary">Secundaria</option>
+                  <option value="Higher">Superior</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Zona de residencia</label>
+                <select class="form-select" id="urbanization">
+                  <option value="Rural">Rural</option>
+                  <option value="Urban">Urbana</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Quintil de riqueza</label>
+                <select class="form-select" id="wealth_quintile">
+                  <option value="1">1 — Muy bajo</option>
+                  <option value="2">2 — Bajo</option>
+                  <option value="3" selected>3 — Medio</option>
+                  <option value="4">4 — Alto</option>
+                  <option value="5">5 — Muy alto</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Condado</label>
+                <select class="form-select" id="county" onchange="autocompletarCondado()">
+                  <option value="Baringo">Baringo</option>
+                  <option value="Bomet">Bomet</option>
+                  <option value="Bungoma">Bungoma</option>
+                  <option value="Busia">Busia</option>
+                  <option value="Elgeyo-Marakwet">Elgeyo-Marakwet</option>
+                  <option value="Embu">Embu</option>
+                  <option value="Garissa">Garissa</option>
+                  <option value="Homa Bay">Homa Bay</option>
+                  <option value="Isiolo">Isiolo</option>
+                  <option value="Kajiado">Kajiado</option>
+                  <option value="Kakamega">Kakamega</option>
+                  <option value="Kericho">Kericho</option>
+                  <option value="Kiambu">Kiambu</option>
+                  <option value="Kilifi">Kilifi</option>
+                  <option value="Kirinyaga">Kirinyaga</option>
+                  <option value="Kisii">Kisii</option>
+                  <option value="Kisumu">Kisumu</option>
+                  <option value="Kitui">Kitui</option>
+                  <option value="Kwale">Kwale</option>
+                  <option value="Laikipia">Laikipia</option>
+                  <option value="Lamu">Lamu</option>
+                  <option value="Machakos">Machakos</option>
+                  <option value="Makueni">Makueni</option>
+                  <option value="Mandera">Mandera</option>
+                  <option value="Marsabit">Marsabit</option>
+                  <option value="Meru">Meru</option>
+                  <option value="Migori">Migori</option>
+                  <option value="Mombasa">Mombasa</option>
+                  <option value="Murang'a">Murang'a</option>
+                  <option value="Nairobi" selected>Nairobi</option>
+                  <option value="Nakuru">Nakuru</option>
+                  <option value="Nandi">Nandi</option>
+                  <option value="Narok">Narok</option>
+                  <option value="Nyamira">Nyamira</option>
+                  <option value="Nyandarua">Nyandarua</option>
+                  <option value="Nyeri">Nyeri</option>
+                  <option value="Samburu">Samburu</option>
+                  <option value="Siaya">Siaya</option>
+                  <option value="Taita Taveta">Taita Taveta</option>
+                  <option value="Tana River">Tana River</option>
+                  <option value="Tharaka-Nithi">Tharaka-Nithi</option>
+                  <option value="Trans Nzoia">Trans Nzoia</option>
+                  <option value="Turkana">Turkana</option>
+                  <option value="Uasin Gishu">Uasin Gishu</option>
+                  <option value="Vihiga">Vihiga</option>
+                  <option value="Wajir">Wajir</option>
+                  <option value="West Pokot">West Pokot</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- HISTORIA OBSTETRICA -->
+            <p class="seccion-titulo">Historia obstetrica</p>
+            <div class="row g-3 mb-3">
+              <div class="col-sm-6">
+                <label class="form-label">Numero de partos previos</label>
+                <input type="number" class="form-control" id="parity" min="0" max="20" value="2">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Edad al primer parto</label>
+                <input type="number" class="form-control" id="age_first_birth" min="10" max="49" value="22">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Intervalo entre partos (meses)</label>
+                <input type="number" class="form-control" id="birth_interval" min="0" max="120" value="24">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Lugar del parto</label>
+                <select class="form-select" id="place_delivery">
+                  <option value="Public">Establecimiento publico</option>
+                  <option value="Private">Establecimiento privado</option>
+                  <option value="Home">Hogar</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Asistencia calificada en el parto</label>
+                <select class="form-select" id="skilled_attendant">
+                  <option value="Skilled">Si, personal calificado</option>
+                  <option value="Not Skilled">No, sin personal calificado</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Parto por cesarea</label>
+                <select class="form-select" id="c_section">
+                  <option value="0">No</option>
+                  <option value="1">Si</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Atencion postnatal en primeras 48h</label>
+                <select class="form-select" id="postnatal48h">
+                  <option value="1">Si</option>
+                  <option value="0">No</option>
+                </select>
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Visitas prenatales (ANC)</label>
+                <input type="number" class="form-control" id="anc_visits" min="0" max="20" value="4">
+              </div>
+            </div>
+
+            <!-- DATOS INDIVIDUALES -->
+            <p class="seccion-titulo">Datos del hogar</p>
+            <div class="row g-3 mb-3">
+              <div class="col-sm-6">
+                <label class="form-label">Distancia al centro de salud (km)</label>
+                <input type="number" class="form-control" id="distance_facility" min="0" max="200" value="5" step="0.1">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Tamano del hogar (personas)</label>
+                <input type="number" class="form-control" id="household_size" min="1" max="30" value="5">
+              </div>
+            </div>
+
+            <!-- DATOS REGIONALES AUTOCOMPLETE -->
+            <p class="seccion-titulo">
+              Indicadores regionales
+              <span class="badge-auto">Se completan automaticamente al elegir el condado</span>
+            </p>
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6">
+                <label class="form-label">Prevalencia VIH (%)</label>
+                <input type="number" class="form-control campo-auto" id="hiv_prev" readonly step="0.01">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Tasa de pobreza (%)</label>
+                <input type="number" class="form-control campo-auto" id="poverty_rate" readonly step="0.01">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Cobertura de personal calificado (%)</label>
+                <input type="number" class="form-control campo-auto" id="sba_coverage" readonly step="0.01">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Densidad de establecimientos de salud</label>
+                <input type="number" class="form-control campo-auto" id="health_facility_density" readonly step="0.01">
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label">Indice educacional del condado</label>
+                <input type="number" class="form-control campo-auto" id="county_edu_index" readonly step="0.01">
+              </div>
+            </div>
+
+            <div class="alert mb-4" style="background-color:#fff8e1; border-left:4px solid #e67e22; border-radius:6px; font-size:0.82rem; color:#555; padding:12px 16px;">
+              <strong style="color:#b7770d;">Alcance del modelo:</strong>
+              Este sistema fue entrenado exclusivamente con datos del
+              <strong>Kenya Demographic and Health Survey (KDHS) 2022</strong>,
+              correspondiente a poblacion femenina en edad reproductiva de Kenya.
+              Sus predicciones no son validas ni generalizables a otros contextos
+              geograficos o sanitarios, incluyendo Chile u otros paises de America Latina.
+              El uso fuera de la poblacion de referencia puede producir estimaciones
+              incorrectas y no debe emplearse para decisiones clinicas reales en dichos contextos.
+            </div>
+
+            <div class="text-center">
+              <button type="button" class="btn btn-predecir" onclick="predecir()">Calcular riesgo</button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="col-lg-5">
+      <div id="resultado">
+        <div class="card">
+          <div class="card-header">Resultado de la prediccion</div>
+          <div class="card-body p-4">
+            <div id="resultado-box" class="resultado-box mb-4">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div>
+                  <div class="prob-numero" id="prob-numero">--</div>
+                  <div style="font-size:0.85rem; color:#555;">probabilidad de riesgo</div>
+                </div>
+                <div>
+                  <div id="nivel-texto" style="font-size:1.1rem; font-weight:700;"></div>
+                  <div id="clasificacion-texto" style="font-size:0.85rem; color:#555;"></div>
+                </div>
+              </div>
+              <div style="font-size:0.83rem; color:#555;" id="umbral-texto"></div>
+            </div>
+            <p class="seccion-titulo">Factores mas influyentes (SHAP)</p>
+            <div id="shap-lista"></div>
+            <p class="footer-note">
+              Esta herramienta es un sistema de apoyo a la decision clinica. No reemplaza el juicio medico profesional.
+              Los resultados deben interpretarse en conjunto con la evaluacion clinica completa de la paciente.
+              Modelo entrenado con datos KDHS 2022 (Kenya): no aplicable fuera de esa poblacion de referencia.
+            </p>
+            <div class="text-center mt-3">
+              <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">Imprimir informe</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="estado-inicial" class="card">
+        <div class="card-body p-4 text-center text-muted" style="padding-top:60px !important; padding-bottom:60px !important;">
+          <div style="font-size:0.95rem;">Complete los datos de la paciente y presione "Calcular riesgo" para obtener la prediccion.</div>
+        </div>
+      </div>
+
+      <div id="cargando" style="display:none;" class="card">
+        <div class="card-body text-center p-4">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="mt-2 text-muted" style="font-size:0.9rem;">Calculando prediccion...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── DATOS REGIONALES POR CONDADO (fuente: KDHS 2022) ──────────────────────
+const DATOS_CONDADO = {
+  "Baringo":         { hiv_prev: 6.0,  poverty_rate: 35.57, sba_coverage: 75.02, health_facility_density: 8.21, county_edu_index: 68.46 },
+  "Bomet":           { hiv_prev: 5.92, poverty_rate: 33.83, sba_coverage: 76.29, health_facility_density: 8.05, county_edu_index: 72.4  },
+  "Bungoma":         { hiv_prev: 6.02, poverty_rate: 34.91, sba_coverage: 75.67, health_facility_density: 9.01, county_edu_index: 70.98 },
+  "Busia":           { hiv_prev: 6.11, poverty_rate: 33.28, sba_coverage: 73.82, health_facility_density: 8.37, county_edu_index: 72.84 },
+  "Elgeyo-Marakwet": { hiv_prev: 6.24, poverty_rate: 38.0,  sba_coverage: 75.42, health_facility_density: 9.05, county_edu_index: 73.11 },
+  "Embu":            { hiv_prev: 6.04, poverty_rate: 35.12, sba_coverage: 75.56, health_facility_density: 8.36, county_edu_index: 71.87 },
+  "Garissa":         { hiv_prev: 6.06, poverty_rate: 35.52, sba_coverage: 74.4,  health_facility_density: 8.76, county_edu_index: 73.36 },
+  "Homa Bay":        { hiv_prev: 5.86, poverty_rate: 33.56, sba_coverage: 75.74, health_facility_density: 8.46, county_edu_index: 75.09 },
+  "Isiolo":          { hiv_prev: 6.0,  poverty_rate: 35.86, sba_coverage: 75.14, health_facility_density: 8.34, county_edu_index: 71.99 },
+  "Kajiado":         { hiv_prev: 5.94, poverty_rate: 35.03, sba_coverage: 76.85, health_facility_density: 8.49, county_edu_index: 72.66 },
+  "Kakamega":        { hiv_prev: 5.93, poverty_rate: 34.53, sba_coverage: 77.81, health_facility_density: 8.24, county_edu_index: 73.48 },
+  "Kericho":         { hiv_prev: 6.28, poverty_rate: 34.19, sba_coverage: 74.9,  health_facility_density: 8.43, county_edu_index: 71.88 },
+  "Kiambu":          { hiv_prev: 6.06, poverty_rate: 36.26, sba_coverage: 75.52, health_facility_density: 8.48, county_edu_index: 72.34 },
+  "Kilifi":          { hiv_prev: 6.18, poverty_rate: 33.21, sba_coverage: 74.97, health_facility_density: 8.56, county_edu_index: 72.68 },
+  "Kirinyaga":       { hiv_prev: 5.96, poverty_rate: 36.66, sba_coverage: 76.41, health_facility_density: 8.93, county_edu_index: 72.13 },
+  "Kisii":           { hiv_prev: 5.66, poverty_rate: 35.23, sba_coverage: 74.82, health_facility_density: 7.91, county_edu_index: 71.5  },
+  "Kisumu":          { hiv_prev: 6.15, poverty_rate: 36.22, sba_coverage: 76.14, health_facility_density: 8.8,  county_edu_index: 71.74 },
+  "Kitui":           { hiv_prev: 5.84, poverty_rate: 35.22, sba_coverage: 74.37, health_facility_density: 8.82, county_edu_index: 72.71 },
+  "Kwale":           { hiv_prev: 6.25, poverty_rate: 35.02, sba_coverage: 75.83, health_facility_density: 8.17, county_edu_index: 74.25 },
+  "Laikipia":        { hiv_prev: 5.9,  poverty_rate: 34.65, sba_coverage: 74.82, health_facility_density: 8.57, county_edu_index: 71.9  },
+  "Lamu":            { hiv_prev: 5.95, poverty_rate: 34.62, sba_coverage: 74.96, health_facility_density: 8.08, county_edu_index: 73.16 },
+  "Machakos":        { hiv_prev: 6.11, poverty_rate: 35.58, sba_coverage: 71.97, health_facility_density: 8.86, county_edu_index: 72.9  },
+  "Makueni":         { hiv_prev: 6.05, poverty_rate: 36.34, sba_coverage: 74.1,  health_facility_density: 8.56, county_edu_index: 71.71 },
+  "Mandera":         { hiv_prev: 5.99, poverty_rate: 34.97, sba_coverage: 75.39, health_facility_density: 8.78, county_edu_index: 74.68 },
+  "Marsabit":        { hiv_prev: 5.78, poverty_rate: 33.93, sba_coverage: 74.24, health_facility_density: 8.38, county_edu_index: 73.42 },
+  "Meru":            { hiv_prev: 6.28, poverty_rate: 35.22, sba_coverage: 74.82, health_facility_density: 8.52, county_edu_index: 72.15 },
+  "Migori":          { hiv_prev: 6.07, poverty_rate: 35.47, sba_coverage: 74.5,  health_facility_density: 8.71, county_edu_index: 72.77 },
+  "Mombasa":         { hiv_prev: 5.98, poverty_rate: 36.49, sba_coverage: 74.49, health_facility_density: 8.41, county_edu_index: 73.08 },
+  "Murang'a":        { hiv_prev: 5.87, poverty_rate: 36.03, sba_coverage: 73.69, health_facility_density: 9.05, county_edu_index: 74.02 },
+  "Nairobi":         { hiv_prev: 5.74, poverty_rate: 34.62, sba_coverage: 75.01, health_facility_density: 8.72, county_edu_index: 72.77 },
+  "Nakuru":          { hiv_prev: 5.81, poverty_rate: 32.37, sba_coverage: 74.79, health_facility_density: 8.73, county_edu_index: 72.28 },
+  "Nandi":           { hiv_prev: 6.36, poverty_rate: 34.48, sba_coverage: 74.47, health_facility_density: 8.14, county_edu_index: 72.19 },
+  "Narok":           { hiv_prev: 5.83, poverty_rate: 35.93, sba_coverage: 77.14, health_facility_density: 8.19, county_edu_index: 70.22 },
+  "Nyamira":         { hiv_prev: 6.19, poverty_rate: 36.28, sba_coverage: 75.29, health_facility_density: 8.05, county_edu_index: 72.57 },
+  "Nyandarua":       { hiv_prev: 5.94, poverty_rate: 33.85, sba_coverage: 77.05, health_facility_density: 8.39, county_edu_index: 70.74 },
+  "Nyeri":           { hiv_prev: 6.2,  poverty_rate: 33.54, sba_coverage: 77.34, health_facility_density: 8.88, county_edu_index: 72.89 },
+  "Samburu":         { hiv_prev: 5.85, poverty_rate: 38.95, sba_coverage: 75.42, health_facility_density: 8.19, county_edu_index: 72.34 },
+  "Siaya":           { hiv_prev: 6.02, poverty_rate: 34.66, sba_coverage: 74.1,  health_facility_density: 9.12, county_edu_index: 72.08 },
+  "Taita Taveta":    { hiv_prev: 5.88, poverty_rate: 35.99, sba_coverage: 75.6,  health_facility_density: 8.44, county_edu_index: 72.72 },
+  "Tana River":      { hiv_prev: 6.0,  poverty_rate: 34.89, sba_coverage: 75.87, health_facility_density: 8.64, county_edu_index: 73.77 },
+  "Tharaka-Nithi":   { hiv_prev: 6.37, poverty_rate: 33.97, sba_coverage: 75.83, health_facility_density: 8.6,  county_edu_index: 71.94 },
+  "Trans Nzoia":     { hiv_prev: 5.91, poverty_rate: 36.38, sba_coverage: 75.19, health_facility_density: 8.83, county_edu_index: 73.89 },
+  "Turkana":         { hiv_prev: 6.13, poverty_rate: 34.45, sba_coverage: 76.78, health_facility_density: 8.0,  county_edu_index: 71.27 },
+  "Uasin Gishu":     { hiv_prev: 5.88, poverty_rate: 37.27, sba_coverage: 75.67, health_facility_density: 8.38, county_edu_index: 72.73 },
+  "Vihiga":          { hiv_prev: 6.27, poverty_rate: 34.58, sba_coverage: 72.83, health_facility_density: 8.21, county_edu_index: 71.31 },
+  "Wajir":           { hiv_prev: 6.0,  poverty_rate: 35.79, sba_coverage: 74.24, health_facility_density: 8.39, county_edu_index: 73.55 },
+  "West Pokot":      { hiv_prev: 6.12, poverty_rate: 34.46, sba_coverage: 76.24, health_facility_density: 8.24, county_edu_index: 70.67 },
+};
+
+function autocompletarCondado() {
+  const condado = document.getElementById('county').value;
+  const datos   = DATOS_CONDADO[condado];
+  if (!datos) return;
+  document.getElementById('hiv_prev').value                = datos.hiv_prev;
+  document.getElementById('poverty_rate').value            = datos.poverty_rate;
+  document.getElementById('sba_coverage').value            = datos.sba_coverage;
+  document.getElementById('health_facility_density').value = datos.health_facility_density;
+  document.getElementById('county_edu_index').value        = datos.county_edu_index;
+}
+
+// Autocompletar al cargar la pagina con el condado por defecto
+window.addEventListener('DOMContentLoaded', function() {
+  autocompletarCondado();
+  sessionStorage.setItem('logged_in', 'true'); // Mark as logged in client-side
+});
+
+async function predecir() {
+  // Check session before predict
+  if (!sessionStorage.getItem('logged_in')) {
+    window.location.href = '/login';
+    return;
+  }
+
+  document.getElementById('resultado').style.display      = 'none';
+  document.getElementById('estado-inicial').style.display = 'none';
+  document.getElementById('cargando').style.display       = 'block';
+
+  const datos = {
+    age:                     parseInt(document.getElementById('age').value),
+    parity:                  parseInt(document.getElementById('parity').value),
+    education:               document.getElementById('education').value,
+    anc_visits:              parseInt(document.getElementById('anc_visits').value),
+    place_delivery:          document.getElementById('place_delivery').value,
+    skilled_attendant:       document.getElementById('skilled_attendant').value,
+    c_section:               parseInt(document.getElementById('c_section').value),
+    postnatal48h:            parseInt(document.getElementById('postnatal48h').value),
+    marital_status:          document.getElementById('marital_status').value,
+    age_first_birth:         parseInt(document.getElementById('age_first_birth').value),
+    birth_interval:          parseInt(document.getElementById('birth_interval').value),
+    wealth_quintile:         parseInt(document.getElementById('wealth_quintile').value),
+    household_size:          parseInt(document.getElementById('household_size').value),
+    distance_facility:       parseFloat(document.getElementById('distance_facility').value),
+    urbanization:            document.getElementById('urbanization').value,
+    health_facility_density: parseFloat(document.getElementById('health_facility_density').value),
+    poverty_rate:            parseFloat(document.getElementById('poverty_rate').value),
+    sba_coverage:            parseFloat(document.getElementById('sba_coverage').value),
+    county_edu_index:        parseFloat(document.getElementById('county_edu_index').value),
+    hiv_prev:                parseFloat(document.getElementById('hiv_prev').value),
+    county:                  document.getElementById('county').value,
+  };
+
+  try {
+    const response = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    const data = await response.json();
+
+    document.getElementById('cargando').style.display = 'none';
+
+    if (data.error) {
+      alert('Error del servidor: ' + data.error);
+      document.getElementById('estado-inicial').style.display = 'block';
+      return;
+    }
+
+    mostrarResultado(data);
+
+  } catch (e) {
+    document.getElementById('cargando').style.display = 'none';
+    document.getElementById('estado-inicial').style.display = 'block';
+    alert('No se pudo conectar con el servidor. Verifique que Flask este corriendo en localhost:5000.');
+  }
+}
+
+function mostrarResultado(data) {
+  document.getElementById('prob-numero').textContent = data.probabilidad + '%';
+  document.getElementById('nivel-texto').textContent = 'Riesgo ' + data.nivel_riesgo;
+  document.getElementById('umbral-texto').textContent =
+    'Umbral de decision: ' + (data.umbral_usado * 100).toFixed(0) + '% (optimizado por curva Precision-Recall)';
+
+  const clases  = { 'Alto': 'riesgo-alto', 'Moderado': 'riesgo-moderado', 'Bajo': 'riesgo-bajo' };
+  const colores = { 'Alto': '#c0392b',     'Moderado': '#e67e22',         'Bajo': '#27ae60'     };
+
+  document.getElementById('resultado-box').className =
+    'resultado-box mb-4 ' + (clases[data.nivel_riesgo] || '');
+  document.getElementById('nivel-texto').style.color =
+    colores[data.nivel_riesgo] || '#333';
+  document.getElementById('clasificacion-texto').textContent =
+    data.clasificacion === 1 ? 'Caso de riesgo identificado' : 'Sin riesgo identificado';
+
+  const contenedor = document.getElementById('shap-lista');
+  contenedor.innerHTML = '';
+
+  if (!data.factores_shap || data.factores_shap.length === 0) {
+    contenedor.innerHTML = '<p class="text-muted" style="font-size:0.85rem;"></p>';
+  } else {
+    const maxVal = Math.max(...data.factores_shap.map(f => Math.abs(f.efecto)));
+    data.factores_shap.forEach(f => {
+      const pct   = maxVal > 0 ? (Math.abs(f.efecto) / maxVal * 100) : 0;
+      const clase = f.efecto > 0 ? 'shap-aumenta' : 'shap-reduce';
+      contenedor.innerHTML += `
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span style="font-size:0.82rem; font-weight:600;">${f.variable}</span>
+            <span style="font-size:0.78rem; color:#666;">${f.direccion}</span>
+          </div>
+          <div class="shap-bar-container">
+            <div class="shap-bar-fill ${clase}" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+    });
+  }
+
+  document.getElementById('resultado').style.display = 'block';
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
