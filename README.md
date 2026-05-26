@@ -1,5 +1,6 @@
 # Maternal-Risk-Predictor--KDHS-
-![Vista del sistema](preview_.png)
+<img width="1601" height="987" alt="image" src="https://github.com/user-attachments/assets/bf4e7273-3029-4888-bdbd-64aa03713fde" />
+
 
  
 # Sistema de Predicción de Riesgo de Mortalidad Materna
