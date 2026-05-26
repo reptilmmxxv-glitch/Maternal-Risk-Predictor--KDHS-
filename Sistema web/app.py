@@ -11,26 +11,48 @@ import pandas as pd
 import numpy as np
 import csv
 import os
+import sys
+import traceback
 from datetime import datetime
 
 # ── PARCHE DE CONTENCIÓN PARA SHAP ──────────────────────────────────────────
 try:
     import shap
 except ImportError:
-    print("Aviso: SHAP no es compatible con NumPy 2.x en este entorno, pero la app continuará ejecutándose.")
+    print("Aviso: SHAP no es compatible con NumPy 2.x en este entorno, pero la app continuará ejecutándose.", flush=True)
     shap = None
 # ──────────────────────────────────────────────────────────────────────────────
 
 app = Flask(__name__)
 app.secret_key = 'mmr-acif104-key-2024'
 
-# ── CARGAR MODELO Y TRANSFORMADORES ──────────────────────────────────────────
+# ── CARGAR MODELO Y TRANSFORMADORES CON CAPTURA DE ERRORES FORZADA ───────────
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'models', 'modelo.pkl')
 COLS_PATH  = os.path.join(os.path.dirname(__file__), 'models', 'columnas.pkl')
 LOG_PATH   = os.path.join(os.path.dirname(__file__), 'logs', 'predicciones.csv')
 
-model    = joblib.load(MODEL_PATH)
-columnas = joblib.load(COLS_PATH)
+try:
+    print("Iniciando la carga de serializaciones (.pkl)...", flush=True)
+    
+    if not os.path.exists(MODEL_PATH):
+        raise FileNotFoundError(f"No se encuentra el archivo del modelo en: {MODEL_PATH}")
+    if not os.path.exists(COLS_PATH):
+        raise FileNotFoundError(f"No se encuentra el archivo de columnas en: {COLS_PATH}")
+
+    model    = joblib.load(MODEL_PATH)
+    print("-> Archivo 'modelo.pkl' cargado exitosamente.", flush=True)
+    
+    columnas = joblib.load(COLS_PATH)
+    print("-> Archivo 'columnas.pkl' cargado exitosamente.", flush=True)
+
+except Exception as e:
+    print(f"\n--- ERROR CRÍTICO DURANTE LA INICIALIZACIÓN ---", flush=True)
+    print(f"Tipo de excepción: {type(e).__name__}", flush=True)
+    print(f"Mensaje de error: {str(e)}", flush=True)
+    print("Detalle del Traceback:", flush=True)
+    traceback.print_exc(file=sys.stdout)
+    sys.stdout.flush()
+    sys.exit(1)
 
 # ── UMBRAL ÓPTIMO ─────────────────────────────────────────────────────────────
 UMBRAL = 0.28
@@ -69,9 +91,6 @@ def login_required(f):
 
 # ── PREPROCESAMIENTO ──────────────────────────────────────────────────────────
 def preprocesar(datos: dict) -> pd.DataFrame:
-    """
-    Replica exactamente el preprocesamiento del entrenamiento.
-    """
     edu_map = {'Primary': 1, 'Secondary': 2, 'Higher': 3}
     datos['education'] = edu_map.get(datos.get('education', 'Primary'), 1)
     df = pd.DataFrame([datos])
@@ -105,18 +124,21 @@ def calcular_shap(df: pd.DataFrame) -> list:
             for nombre, valor in pares
         ]
     except Exception as e:
-        print(f'Error SHAP: {e}')
+        print(f'Error SHAP: {e}', flush=True)
         return []
 
 def registrar_log(datos: dict, probabilidad: float, clasificacion: int):
-    os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
-    fila = {'timestamp': datetime.now().isoformat(), 'probabilidad': probabilidad, 'clasificacion': clasificacion, **datos}
-    archivo_existe = os.path.exists(LOG_PATH)
-    with open(LOG_PATH, 'a', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, fieldnames=fila.keys())
-        if not archivo_existe:
-            writer.writeheader()
-        writer.writerow(fila)
+    try:
+        os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+        fila = {'timestamp': datetime.now().isoformat(), 'probabilidad': probabilidad, 'clasificacion': clasificacion, **datos}
+        archivo_existe = os.path.exists(LOG_PATH)
+        with open(LOG_PATH, 'a', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=fila.keys())
+            if not archivo_existe:
+                writer.writeheader()
+            writer.writerow(fila)
+    except Exception as e:
+        print(f'Error al registrar log local: {e}', flush=True)
 
 # ── RUTAS ─────────────────────────────────────────────────────────────────────
 @app.route('/')
